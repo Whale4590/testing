@@ -1,0 +1,56 @@
+---
+- name: Import host inventory from xml spreadsheet
+  hosts: all
+  vars:
+    - filename:
+    - inventory_dir:
+  tasks:
+    - name: Read xml into memory
+      slurp:
+        src: "{{ inventory_dir + '/' + filename }}"
+      register: xml_inventory
+
+    - name: Convert xml to json
+      set_fact:
+        json_inventory: "{{ xml_inventory.content | b64decode | from_xml }}"
+
+    - name: Set inventory variables
+      set_fact:
+        inventory_hosts: "{{ json_inventory['inventory']['host'] | map(attribute='name') | list }}"
+        inventory_groups: "{{ json_inventory['inventory']['group'] | map(attribute='name') | list }}"
+        inventory_vars: "{{ json_inventory['inventory']['group'] | map(attribute='vars') | list }}"
+
+    - name: Create inventory groups
+      ansible.builtin.group_by:
+        key: "{{ item }}"
+      loop: "{{ inventory_groups }}"
+
+    - name: Add hosts to groups
+      ansible.builtin.add_host:
+        name: "{{ item }}"
+        groups: "{{ inventory_groups }}"
+      loop: "{{ inventory_hosts }}"
+
+    - name: Set group variables
+      ansible.builtin.set_fact:
+        group_vars: "{{ item.vars }}"
+      loop: "{{ json_inventory['inventory']['group'] }}"
+      when: item.vars is defined
+
+    - name: Set host variables
+      ansible.builtin.set_fact:
+        host_vars: "{{ item.vars }}"
+      loop: "{{ json_inventory['inventory']['host'] }}"
+      when: item.vars is defined  
+
+    - name: Display inventory
+      debug:
+        msg: "Inventory hosts: {{ inventory_hosts }}, Inventory groups: {{ inventory_groups }}, Group vars: {{ group_vars }}, Host vars: {{ host_vars }}"
+      when: inventory_hosts is defined and inventory_groups is defined  
+
+    - name: Ensure inventory is ready
+      ansible.builtin.meta: flush_handlers
+    
+    - name: Finalize inventory setup
+      ansible.builtin.meta: end_play  
+      when: inventory_hosts is defined and inventory_groups is defined
