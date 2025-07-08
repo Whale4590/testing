@@ -1,0 +1,53 @@
+{% for group in inventory_groups %}
+[{{ group.name }}]
+{% for host in group.hosts %}
+{{ host.name }} ansible_host={{ host.ip }} ansible_port={{ host.port | default('22') }} ansible_user={{ host.user | default('root') }} ansible_ssh_private_key_file={{ host.ssh_key | default('/path/to/default/key') }}
+{% endfor %}
+
+{% if group.vars %}
+[{{ group.name }}:vars]
+{% for key, value in group.vars.items() %}
+{{ key }}={{ value }}
+{% endfor %}
+{% endif %}
+
+{% if group.children %}
+{% for child in group.children %}
+[{{ child }}:children]
+{{ group.name }}
+{% endfor %}
+{% endif %}
+
+{% if group.hosts | length == 0 %}
+[{{ group.name }}:empty]
+{% endif %}
+
+{% if group.children | length == 0 %}
+[{{ group.name }}:no_children]
+{% endif %}
+
+{% if group.vars | length == 0 %}
+[{{ group.name }}:no_vars]
+{% endif %}
+
+{% if group.children | length > 0 %}
+[{{ group.name }}:children]
+{% for child in group.children %}
+{{ child }}
+{% endfor %}
+{% endif %}
+
+{% if group.hosts | length > 0 %}
+[{{ group.name }}:hosts]
+{% for host in group.hosts %}
+{{ host.name }}
+{% endfor %}
+{% endif %}
+
+{% if group.vars | length > 0 %}
+[{{ group.name }}:vars]
+{% for key, value in group.vars.items() %}
+{{ key }}={{ value }}
+{% endfor %}
+{% endif %}
+{% endfor %}
