@@ -1,0 +1,18 @@
+---
+- name: Get latest STIG URL from DISA
+  script:
+    cmd: python3 ../files/get_latest_stig.py
+  register: latest_stig
+  changed_when: false
+
+- name: Extract filename from URL
+  set_fact:
+    stig_url: "{{ latest_stig.stdout }}"
+    stig_filename: "{{ latest_stig.stdout | basename }}"
+
+- name: Ensure the latest version is downloaded
+  stat:
+    path: "{{ stig_dir }}/{{ stig_filename }}"
+  register: stig_file
+  changed_when: "{{ stig_file.stat.exists }}"
+  notify: Download new STIG file

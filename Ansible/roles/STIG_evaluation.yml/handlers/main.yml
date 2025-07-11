@@ -1,0 +1,6 @@
+---
+- name: Download STIG file
+  get_url:
+    url: "{{ stig_url }}"
+    dest: "{{ stig_dir }}/{{ stig_targets }}/{{ stig_filename }}"
+    mode: '0644'

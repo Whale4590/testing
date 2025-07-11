@@ -1,0 +1,5 @@
+---
+stig_targets:
+  - RHEL_8
+  - RHEL_9
+  - RHEL_10
